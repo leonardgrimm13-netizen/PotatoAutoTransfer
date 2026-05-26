@@ -37,6 +37,9 @@ If `/transfer` is already taken, plugin falls back to `/potatotransfer` or `/aut
 
 See `README.de.md` for full German docs.
 
+## Plugin metadata
+Velocity plugin metadata (`velocity-plugin.json`) is generated from the `@Plugin` annotation by the Velocity annotation processor during build.
+
 
 ## Note
 This repository intentionally does **not** include a Gradle Wrapper because this Codex environment disallows adding binary files. CI uses `gradle/actions/setup-gradle` with an explicit Gradle version.

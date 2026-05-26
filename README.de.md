@@ -55,6 +55,9 @@ debug=false
 - `potatoautotransfer.status`
 - `potatoautotransfer.admin`
 
+## Plugin-Metadaten
+Die Velocity-Plugin-Metadaten (`velocity-plugin.json`) werden beim Build aus der `@Plugin`-Annotation über den Velocity-Annotation-Processor erzeugt.
+
 ## Troubleshooting
 - **`target_host=CHANGE_ME`**: Kein Transfer, Konsole warnt korrekt.
 - **TCP geht, aber `minecraft_status` nicht**: Ziel antwortet nicht korrekt auf Status-Ping; testweise `check_mode=tcp` nutzen oder `minecraft_protocol_version` passend setzen.
