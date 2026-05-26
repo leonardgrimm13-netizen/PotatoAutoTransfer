@@ -77,8 +77,11 @@ public final class PotatoAutoTransfer {
     if (!cfg.autoTransfer || !cfg.isHostConfigured()) {
       return;
     }
-    int delay = config.get().joinDelayMs();
-    proxy.getScheduler().buildTask(this, () -> transferIfEligible(event.getPlayer(), config.get())).delay(delay, TimeUnit.MILLISECONDS).schedule();
+    int delayMs = cfg.joinDelayMs();
+    proxy.getScheduler()
+      .buildTask(this, () -> transferIfEligible(event.getPlayer(), config.get()))
+      .delay(delayMs, TimeUnit.MILLISECONDS)
+      .schedule();
   }
 
   @Subscribe
@@ -235,15 +238,13 @@ public final class PotatoAutoTransfer {
     try {
       player.transferToHost(InetSocketAddress.createUnresolved(cfg.targetHost, cfg.targetPort));
       return true;
-    } catch (IllegalArgumentException ex) {
+    } catch (IllegalArgumentException e) {
       if (cfg.debug) {
-        logger.debug("[PotatoAutoTransfer] Transfer failed for {} due to client/protocol limitation: {}", player.getUsername(), ex.getMessage());
+        logger.debug("[PotatoAutoTransfer] Transfer not supported for {}: {}", player.getUsername(), e.getMessage());
       }
       return false;
-    } catch (Exception ex) {
-      if (cfg.debug) {
-        logger.debug("[PotatoAutoTransfer] Transfer failed for {}", player.getUsername(), ex);
-      }
+    } catch (Exception e) {
+      logger.warn("[PotatoAutoTransfer] Transfer failed for {}", player.getUsername(), e);
       return false;
     }
   }
