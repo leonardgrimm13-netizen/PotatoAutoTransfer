@@ -16,9 +16,30 @@ Result jar:
 1. Copy jar to `plugins/`.
 2. Start Velocity once.
 3. Edit `plugins/PotatoAutoTransfer/config.properties`:
-   - `target_host=your.target.host`
-   - `target_port=25565`
+   - `transfer_host=play.example.com`
+   - `transfer_port=25565`
+   - `check_host=100.64.0.10`
+   - `check_port=25565`
 4. Run `/transfer reload`.
+
+## Architecture example
+Players connect to a public Minecraft/Python failover proxy:
+
+`Players -> public failover proxy -> MAIN/FALLBACK`
+
+PotatoAutoTransfer runs on the FALLBACK server and checks when MAIN is back online.
+
+Example:
+
+```properties
+transfer_host=play.example.com
+transfer_port=25565
+check_host=100.64.0.10
+check_port=25565
+```
+
+- `transfer_host` must be reachable by the player client.
+- `check_host` only needs to be reachable by the fallback server.
 
 ## Commands
 - `/transfer` manual transfer for eligible players
