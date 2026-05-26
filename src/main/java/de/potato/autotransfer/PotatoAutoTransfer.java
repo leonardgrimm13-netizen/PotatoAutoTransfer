@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
-@Plugin(id = "potatoautotransfer", name = "PotatoAutoTransfer", version = "1.1.0", authors = {"leonardgrimm13-netizen"})
+@Plugin(id = "potatoautotransfer", name = "PotatoAutoTransfer", version = "1.2.0", authors = {"leonardgrimm13-netizen"})
 public final class PotatoAutoTransfer {
   private static final String CONFIG_FILE = "config.properties";
   private static final int DEFAULT_PROTOCOL_VERSION = -1;
