@@ -1,0 +1,1 @@
+{"id":"potatoautotransfer","name":"PotatoAutoTransfer","version":"1.0.0","description":"Auto/Manual transfer all players from this Velocity proxy to another host:port.","authors":[],"dependencies":[],"main":"de.potato.autotransfer.PotatoAutoTransfer"}
