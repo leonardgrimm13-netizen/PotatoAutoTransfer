@@ -3,13 +3,7 @@ plugins {
 }
 
 group = 'de.potato'
-version = '1.0.0'
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
+version = '1.1.0'
 
 repositories {
     mavenCentral()
@@ -17,10 +11,16 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.velocitypowered:velocity-api:3.5.0-SNAPSHOT'
-    annotationProcessor 'com.velocitypowered:velocity-api:3.5.0-SNAPSHOT'
+    compileOnly 'com.velocitypowered:velocity-api:3.4.0'
+    annotationProcessor 'com.velocitypowered:velocity-api:3.4.0'
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+jar {
+    archiveBaseName = 'PotatoAutoTransfer'
+    archiveVersion = project.version
 }

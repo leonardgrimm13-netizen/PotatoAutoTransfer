@@ -1,0 +1,11 @@
+{
+  "id": "potatoautotransfer",
+  "name": "PotatoAutoTransfer",
+  "version": "1.1.0",
+  "description": "Auto/manual transfer to an external Velocity or Minecraft host via transferToHost(host:port).",
+  "authors": [
+    "leonardgrimm13-netizen"
+  ],
+  "main": "de.potato.autotransfer.PotatoAutoTransfer",
+  "dependencies": []
+}
