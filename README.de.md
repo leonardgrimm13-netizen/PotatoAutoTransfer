@@ -1,60 +1,107 @@
 # PotatoAutoTransfer (Deutsch)
 
 ## Überblick
-PotatoAutoTransfer läuft auf einem Fallback-/Warteraum-Server hinter Velocity und transferiert Spieler automatisch zurück zum Main-Server, sobald dieser wieder erreichbar ist.
+PotatoAutoTransfer läuft auf deiner Fallback-/Warteraum-Velocity-Instanz und transferiert Spieler nur dann zurück, wenn alle benötigten Checks online sind.
 
 ## Architektur
-Spieler verbinden sich zuerst mit einem öffentlichen Python-Failover-Proxy.
+Spieler verbinden sich über einen öffentlichen Python-Failover-Proxy.
 
-`Spieler -> öffentlicher Python-Failover-Proxy -> MAIN oder FALLBACK`
+`Spieler -> öffentlicher Python-Failover-Proxy -> Velocity/Main-Proxy -> Paper/Main`
 
-- Wenn MAIN online ist, leitet der Python-Failover-Proxy neue Verbindungen direkt zu MAIN weiter.
-- Wenn MAIN offline ist, leitet der Python-Failover-Proxy zu FALLBACK/Warteraum weiter.
-- PotatoAutoTransfer läuft auf FALLBACK/Warteraum.
-- PotatoAutoTransfer prüft regelmäßig `check_host`/`check_port`.
-- Sobald `check_host` erreichbar ist, transferiert PotatoAutoTransfer Spieler zu `transfer_host`/`transfer_port` über `player.transferToHost(...)`.
-- `transfer_host` muss vom Spieler-Client erreichbar sein.
-- `check_host` muss nur vom Server erreichbar sein, auf dem PotatoAutoTransfer läuft.
+- Wenn Main offline ist, landen Spieler im Fallback/Warteraum.
+- PotatoAutoTransfer läuft im Fallback/Warteraum.
+- Das Plugin prüft bis zu zwei getrennte Ziele:
+  - `check1`: typischerweise Main Velocity / Main Proxy
+  - `check2`: typischerweise Paper Main / Backend
+- Transfer passiert nur, wenn alle aktivierten Checks erreichbar sind.
+- Danach werden Spieler zu `transfer_host`/`transfer_port` transferiert.
+
+Wichtige Trennung:
+- `transfer_host` muss als öffentliche Adresse vom Client erreichbar sein.
+- `check1_host` / `check2_host` dürfen intern/LAN/Tailscale sein, weil Checks nur vom Fallback-Server laufen.
+
+## Beispiel für dein Setup
+```properties
+transfer_host=play.example.com
+transfer_port=25565
+
+check1_enabled=true
+check1_name=Main Velocity
+check1_host=100.64.0.10
+check1_port=25565
+check1_mode=minecraft_status
+
+check2_enabled=true
+check2_name=Paper Main
+check2_host=100.64.0.11
+check2_port=25565
+check2_mode=minecraft_status
+```
+
+Erklärung:
+- `transfer_host` muss vom Spieler erreichbar sein.
+- `check1_host` und `check2_host` müssen nur vom Fallback-Server erreichbar sein.
+- Tailscale-IP ist als Check-Host okay.
+- Tailscale-IP als `transfer_host` funktioniert nur, wenn Spieler ebenfalls im Tailscale-Netz sind.
 
 ## Konfiguration
-Beispiel für `plugins/PotatoAutoTransfer/config.properties`:
-
 ```properties
 autotransfer=true
 
+# Ziel, zu dem Spieler transferiert werden. Muss vom Client erreichbar sein.
 transfer_host=CHANGE_ME
 transfer_port=25565
 
-check_host=CHANGE_ME
-check_port=25565
+# Check 1 (Main Velocity/Main Proxy)
+check1_enabled=true
+check1_name=Main Velocity
+check1_host=CHANGE_ME
+check1_port=25565
+check1_mode=minecraft_status
 
-check_mode=minecraft_status
+# Check 2 (Paper Main/Backend)
+check2_enabled=false
+check2_name=Paper Main
+check2_host=CHANGE_ME
+check2_port=25565
+check2_mode=minecraft_status
+
 check_interval_seconds=5
 connect_timeout_ms=1000
 read_timeout_ms=1500
 retry_cooldown_seconds=15
 join_delay_ms=500
 notify_players_when_target_down=false
-target_down_message=Mainserver ist aktuell noch nicht erreichbar. Bitte warte kurz.
+target_down_message=Mainserver ist aktuell noch nicht vollständig erreichbar. Bitte warte kurz.
 minecraft_protocol_version=-1
 debug=false
 ```
 
-### Konfigurations-Erklärung
-- `autotransfer=true`: Spieler werden automatisch transferiert, sobald MAIN erreichbar ist.
-- `transfer_host`/`transfer_port`: Ziel, zu dem der Client per `player.transferToHost(...)` geschickt wird. Muss öffentlich/vom Spieler erreichbar sein.
-- `check_host`/`check_port`: Ziel, das vom Plugin geprüft wird, um zu erkennen, ob MAIN wieder online ist. Kann intern, LAN oder Tailscale sein.
-- `check_mode=tcp`: Prüft nur offenen TCP-Port.
-- `check_mode=minecraft_status`: Echter Minecraft Status-Ping.
-- `minecraft_protocol_version=-1`: Default-/Auto-Wert für den Status-Ping.
+### Vollständige Konfigurations-Erklärung
+- `autotransfer`: Schalter für automatischen Transfer.
+- `transfer_host` / `transfer_port`: Ziel für `player.transferToHost(...)`.
+- `check1_enabled`, `check1_name`, `check1_host`, `check1_port`, `check1_mode`: erster Pflicht-Check.
+- `check2_enabled`, `check2_name`, `check2_host`, `check2_port`, `check2_mode`: optionaler zweiter Check.
+- `check_interval_seconds`: Intervall für Reachability-Prüfung.
+- `connect_timeout_ms` / `read_timeout_ms`: Socket-Timeouts.
+- `retry_cooldown_seconds`: Cooldown pro Spieler für erneute Versuche.
+- `join_delay_ms`: Verzögerung nach Login vor Auto-Transfer-Versuch.
+- `notify_players_when_target_down`: Nachricht senden, wenn blockiert.
+- `target_down_message`: Nachrichtentext.
+- `minecraft_protocol_version`: Protokoll für Status-Ping (`-1` default/auto).
+- `debug`: detaillierte Logs.
+
+Legacy-Kompatibilität:
+- Alte Keys `check_host`, `check_port`, `check_mode` werden weiter als Fallback für check1 unterstützt.
+- Bitte auf `check1_*` migrieren; das Plugin loggt eine einmalige Warnung.
 
 ## Commands
-- `/transfer`: Manueller Transfer aller berechtigten Spieler, wenn `check_host` erreichbar ist.
-- `/transfer status`: Zeigt AutoTransfer, Check-Ziel, Transfer-Ziel, Check-Modus, Reachability und Alter des letzten Checks.
-- `/transfer reload`: Lädt die Config neu.
-- `/transfer on`: Aktiviert Autotransfer und speichert es in der Config.
-- `/transfer off`: Deaktiviert Autotransfer und speichert es in der Config.
-- `/transfer help`: Zeigt Hilfe.
+- `/transfer`
+- `/transfer status`
+- `/transfer reload`
+- `/transfer on`
+- `/transfer off`
+- `/transfer help`
 
 ## Permissions
 - `potatoautotransfer.transfer`
@@ -62,37 +109,28 @@ debug=false
 - `potatoautotransfer.admin`
 
 ## Installation
-Build:
-
 ```bash
 gradle build
 ```
 
 Jar:
-
 ```text
-build/libs/PotatoAutoTransfer-1.2.0.jar
+build/libs/PotatoAutoTransfer-1.3.0.jar
 ```
 
-Installation:
-1. Jar nach `plugins/` kopieren.
-2. Velocity starten.
-3. `plugins/PotatoAutoTransfer/config.properties` bearbeiten.
-4. `transfer_host`, `transfer_port`, `check_host`, `check_port` setzen.
-5. `/transfer reload` ausführen oder Velocity neu starten.
-6. `/transfer status` prüfen.
-
-Wichtig:
-Dieses Repository nutzt bewusst keinen Gradle Wrapper, weil in der Codex-Umgebung keine Binärdateien hinzugefügt werden sollen. GitHub Actions nutzt `gradle/actions/setup-gradle`.
-
 ## Troubleshooting
-- `transfer_host=CHANGE_ME`: Kein Transfer.
-- `check_host=CHANGE_ME`: Kein Transfer.
-- `check_host` erreichbar, aber Transfer klappt nicht: Dann ist wahrscheinlich `transfer_host` vom Spieler-Client nicht erreichbar.
-- `minecraft_status` geht nicht, aber TCP geht: Testweise `check_mode=tcp` setzen oder `minecraft_protocol_version` passend setzen.
-- Spieler landen wieder im Fallback: Dann leitet der öffentliche Python-Failover-Proxy wahrscheinlich noch zum Fallback, weil MAIN aus Sicht des Python-Proxys noch offline ist.
-- Tailscale-IP als `transfer_host` funktioniert nur, wenn der Spieler selbst im Tailscale-Netz ist.
-- Tailscale-IP als `check_host` ist okay, wenn der Fallback-Server diese IP erreichen kann.
-
-## Plugin-Metadaten
-Die Velocity-Plugin-Metadaten (`velocity-plugin.json`) werden beim Build aus der `@Plugin`-Annotation über den Velocity-Annotation-Processor erzeugt. Es gibt keine manuelle `src/main/resources/velocity-plugin.json`.
+- Spieler werden nicht transferiert:
+  - `/transfer status` prüfen.
+  - Wenn beide Checks aktiv sind, müssen beide online sein.
+- check1 online, check2 offline:
+  - Transfer wird korrekt blockiert.
+  - Paper/Main-Backend ist noch nicht bereit.
+- `check2_enabled=true` und `check2_host=CHANGE_ME`:
+  - Transfer wird blockiert.
+- Spieler landen wieder im Fallback:
+  - Öffentlicher Failover-Proxy sieht Main vermutlich noch als offline.
+- Tailscale-IP als `transfer_host` klappt nicht für normale Spieler:
+  - Erwartet, außer Spieler sind ebenfalls im Tailscale-Netz.
+- `minecraft_status` scheitert, TCP geht:
+  - Testweise `check1_mode=tcp` oder `check2_mode=tcp` setzen.
+  - Oder passende `minecraft_protocol_version` setzen.
